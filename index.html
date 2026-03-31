@@ -3,287 +3,448 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WootAI - Deal Finder</title>
+    <title>A1 Mini Control Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #ffffff; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .message-anim { animation: slideIn 0.3s ease-out forwards; }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #f1f1f1; border-radius: 10px; }
-        .product-card { transition: all 0.2s ease; }
-        .product-card:hover { border-color: #000; background-color: #fafafa; transform: translateY(-1px); }
-        select { appearance: none; -webkit-appearance: none; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #09090b; /* zinc-950 */
+            color: #fafafa; /* zinc-50 */
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #18181b;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #3f3f46;
+            border-radius: 10px;
+        }
+
+        .nav-active {
+            background-color: #27272a; /* zinc-800 */
+            color: #ffffff;
+        }
+
+        .progress-glow {
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+        }
+
+        .app-wrapper {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 2rem;
+            height: 100%;
+        }
+
+        .control-card {
+            background-color: rgba(24, 24, 27, 0.4);
+            border: 1px solid #27272a;
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .control-card:hover {
+            border-color: #3f3f46;
+            background-color: rgba(39, 39, 42, 0.4);
+        }
+
+        .jog-btn {
+            background-color: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.1s;
+        }
+
+        .jog-btn:hover {
+            background-color: #27272a;
+            border-color: #3f3f46;
+        }
+
+        .jog-btn:active {
+            transform: scale(0.95);
+        }
     </style>
 </head>
-<body class="flex flex-col h-screen overflow-hidden">
+<body>
 
-    <main id="main-content" class="flex-1 overflow-y-auto custom-scrollbar bg-white">
-        <!-- Top Bar for Model Select (Minimalist) -->
-        <div class="max-w-2xl mx-auto px-6 pt-6 flex justify-end">
-            <div class="relative">
-                <select id="modelSelect" class="bg-gray-50 border border-gray-100 text-gray-500 text-[10px] font-bold uppercase tracking-wider rounded-full px-4 py-1.5 pr-8 focus:outline-none cursor-pointer hover:bg-gray-100 transition-all">
-                    <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
-                    <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
-                </select>
-                <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[8px] text-gray-400 pointer-events-none"></i>
+    <div class="app-wrapper">
+        <!-- Sidebar Navigation (Collapsed/Fixed) -->
+        <aside class="w-20 border-r border-zinc-800 flex flex-col items-center py-8 gap-8 bg-zinc-900/50">
+            <div class="p-4 rounded-2xl nav-active">
+                <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
             </div>
-        </div>
-
-        <div id="welcome-screen" class="max-w-2xl mx-auto pt-24 px-6 text-center">
-            <div class="mb-6 flex justify-center">
-                <div class="w-12 h-12 bg-black rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-lg">W</div>
-            </div>
-            <p class="text-gray-500 text-sm">Real-time deal analysis powered by AI</p>
-            <div id="api-status" class="mt-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center justify-center gap-2">
-                <div class="w-1.5 h-1.5 rounded-full bg-gray-300" id="status-dot"></div>
-                API Ready
-            </div>
-        </div>
-
-        <div id="chat-container" class="max-w-2xl mx-auto px-6 py-10 space-y-8 hidden"></div>
-
-        <div id="loading-state" class="max-w-2xl mx-auto px-6 py-4 hidden">
-            <div class="flex items-center gap-3 text-gray-400 font-medium text-sm">
-                <i class="fas fa-circle-notch animate-spin"></i>
-                <span id="loading-text">Fetching live feeds...</span>
-            </div>
-        </div>
-        <div id="anchor"></div>
-    </main>
-
-    <footer class="p-6 bg-white border-t border-gray-50">
-        <div class="max-w-2xl mx-auto">
-            <div class="flex flex-wrap gap-2 mb-4">
-                <button onclick="quickAsk('What are the newest deals on Woot right now?')" class="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-100 rounded-full text-sm hover:border-gray-400 hover:bg-gray-100 transition-all text-gray-700">
-                    <i class="fas fa-bolt text-[10px] text-yellow-500"></i> Newest Deals
-                </button>
-                <button onclick="quickAsk('Find me electronics or tech gadgets')" class="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-100 rounded-full text-sm hover:border-gray-400 hover:bg-gray-100 transition-all text-gray-700">
-                    <i class="fas fa-laptop text-[10px]"></i> Tech
-                </button>
-            </div>
-
-            <form id="chat-form" class="relative">
-                <input 
-                    type="text" 
-                    id="user-input"
-                    placeholder="Ask about current Woot deals..." 
-                    class="w-full pl-6 pr-14 py-4 bg-gray-100 border border-transparent rounded-2xl focus:outline-none focus:bg-white focus:border-gray-200 transition-all text-base"
-                    autocomplete="off"
-                >
-                <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black text-white rounded-xl flex items-center justify-center hover:bg-gray-800 transition-all">
-                    <i class="fas fa-arrow-up text-sm"></i>
-                </button>
-            </form>
-        </div>
-    </footer>
-
-    <script>
-        const WOOT_API_KEY = "Hbczyk6tXu3nTgh99I5ZQ3ZQq9aZXVGQ6gp3VoN2";
-        const API_KEYS_URL = "https://groq-api-keys.pages.dev/apikeys.txt";
-        const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
-        // Optimized URL to fetch from Woot Developer API
-        const WOOT_FEED_URL = 'https://developer.woot.com/feed/all';
-        
-        const chatForm = document.getElementById('chat-form');
-        const userInput = document.getElementById('user-input');
-        const chatContainer = document.getElementById('chat-container');
-        const welcomeScreen = document.getElementById('welcome-screen');
-        const loadingState = document.getElementById('loading-state');
-        const loadingText = document.getElementById('loading-text');
-        const mainContent = document.getElementById('main-content');
-        const modelSelect = document.getElementById('modelSelect');
-        const statusDot = document.getElementById('status-dot');
-
-        let messageHistory = [];
-        let currentDeals = [];
-        let groqKeys = [];
-        let groqKeyIndex = 0;
-
-        window.quickAsk = function(val) {
-            userInput.value = val;
-            chatForm.dispatchEvent(new Event('submit'));
-        };
-
-        async function initKeys() {
-            try {
-                const res = await fetch(API_KEYS_URL);
-                const text = await res.text();
-                groqKeys = text.split('\n').map(k => k.trim()).filter(k => k.length > 10);
-                groqKeyIndex = Math.floor(Math.random() * groqKeys.length);
-            } catch (e) { 
-                console.error("Key init failed", e); 
-            }
-        }
-
-        async function fetchWootData() {
-            try {
-                // We use AllOrigins but with a more robust JSON method
-                const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(WOOT_FEED_URL)}`);
-                if (!response.ok) throw new Error("CORS Proxy Failure");
-                
-                const wrapper = await response.json();
-                // The developer portal often returns XML or RSS even on 'feed/all'
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(wrapper.contents, "text/xml");
-                const items = xmlDoc.querySelectorAll("item");
-                
-                if (!items || items.length === 0) throw new Error("No items found");
-
-                currentDeals = Array.from(items).map(item => {
-                    const title = item.querySelector("title")?.textContent || "Untitled Deal";
-                    const link = item.querySelector("link")?.textContent || "#";
-                    // Attempt to find image in enclosure or media:content tags
-                    const enclosure = item.querySelector("enclosure");
-                    const img = enclosure ? enclosure.getAttribute("url") : 'https://www.woot.com/favicon.ico';
-                    const desc = item.querySelector("description")?.textContent || "";
-
-                    return {
-                        Title: title,
-                        Url: link,
-                        Image: img,
-                        Description: desc.substring(0, 150)
-                    };
-                });
-
-                statusDot.className = "w-1.5 h-1.5 rounded-full bg-green-500";
-                return JSON.stringify(currentDeals.slice(0, 15));
-            } catch (e) {
-                console.warn("Primary API failed, trying secondary RSS-JSON fallback", e);
-                try {
-                    const fallbackRes = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent('https://www.woot.com/blog/feed')}`);
-                    const fallbackData = await fallbackRes.json();
-                    
-                    if (!fallbackData.items) throw new Error("Fallback failed");
-
-                    currentDeals = fallbackData.items.map(i => ({
-                        Title: i.title,
-                        Url: i.link,
-                        Image: i.thumbnail || i.enclosure?.link || 'https://www.woot.com/favicon.ico',
-                        Description: i.description || ""
-                    }));
-                    
-                    statusDot.className = "w-1.5 h-1.5 rounded-full bg-yellow-500";
-                    return JSON.stringify(currentDeals.slice(0, 10));
-                } catch (err) {
-                    statusDot.className = "w-1.5 h-1.5 rounded-full bg-red-500";
-                    throw err;
-                }
-            }
-        }
-
-        async function callAI(messages) {
-            if (groqKeys.length === 0) await initKeys();
-            const key = groqKeys[groqKeyIndex % groqKeys.length];
-            const res = await fetch(GROQ_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model: modelSelect.value,
-                    messages: messages,
-                    temperature: 0.6
-                })
-            });
-            const data = await res.json();
-            if (data.error) {
-                groqKeyIndex++; // Try next key on next call
-                throw new Error(data.error.message);
-            }
-            return data.choices[0].message.content;
-        }
-
-        async function handleSubmit(e) {
-            e.preventDefault();
-            const query = userInput.value.trim();
-            if (!query) return;
-
-            welcomeScreen.classList.add('hidden');
-            chatContainer.classList.remove('hidden');
-            loadingState.classList.remove('hidden');
-            userInput.value = '';
-
-            appendMessage('user', query);
-
-            try {
-                loadingText.innerText = "Connecting to Woot API...";
-                const context = await fetchWootData();
-
-                loadingText.innerText = "Analyzing live deals...";
-                const reply = await callAI([
-                    { role: 'system', content: `You are WootAI. Use this actual Woot data: ${context}. Highlight the best bargains. If you mention an item, MUST use [ITEM: Title] (with exact or partial title) for the UI to render. Be witty, concise, and helpful.` },
-                    ...messageHistory,
-                    { role: 'user', content: query }
-                ]);
-
-                appendMessage('assistant', reply);
-                messageHistory.push({ role: 'user', content: query }, { role: 'assistant', content: reply });
-            } catch (err) {
-                console.error(err);
-                appendMessage('assistant', "I hit a snag connecting to the Woot feed. This usually happens if the server is busy. Let's try once more!");
-            } finally {
-                loadingState.classList.add('hidden');
-            }
-        }
-
-        function appendMessage(role, text) {
-            const div = document.createElement('div');
-            div.className = `message-anim flex ${role === 'user' ? 'justify-end' : 'justify-start flex-col'}`;
             
-            if (role === 'user') {
-                div.innerHTML = `<div class="bg-black text-white px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] text-sm font-medium shadow-sm">${text}</div>`;
-            } else {
-                let cards = '';
-                const itemRegex = /\[ITEM:\s*(.*?)\]/g;
-                let match;
-                const seen = new Set();
+            <div class="mt-auto flex flex-col gap-6 pb-4">
+                <i data-lucide="wifi" id="wifi-icon" class="w-6 h-6 text-zinc-600 transition-colors"></i>
+            </div>
+        </aside>
 
-                // Advanced matching logic
-                while ((match = itemRegex.exec(text)) !== null) {
-                    const itemName = match[1].toLowerCase().trim();
-                    const deal = currentDeals.find(d => {
-                        const dTitle = d.Title.toLowerCase();
-                        return dTitle.includes(itemName) || itemName.includes(dTitle);
-                    });
-                    
-                    if (deal && !seen.has(deal.Url)) {
-                        seen.add(deal.Url);
-                        cards += `
-                            <button onclick="window.open('${deal.Url}', '_blank')" class="product-card flex items-center gap-4 w-full p-3 border border-gray-100 rounded-2xl bg-white mb-3 text-left">
-                                <img src="${deal.Image}" class="w-12 h-12 object-contain rounded-lg bg-gray-50" onerror="this.src='https://www.woot.com/favicon.ico'">
-                                <div class="flex-1 overflow-hidden">
-                                    <div class="text-[10px] font-bold text-orange-500 uppercase tracking-tighter">Live Deal</div>
-                                    <div class="text-sm font-bold text-gray-900 truncate">${deal.Title}</div>
-                                </div>
-                                <i class="fas fa-external-link-alt text-gray-300 text-xs pr-2"></i>
-                            </button>
-                        `;
-                    }
-                }
-
-                const cleanText = text.replace(/\[ITEM:.*?\]/g, '').trim()
-                    .replace(/\n/g, '<br>')
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        <!-- Main Workspace -->
+        <main class="flex-1 flex flex-col p-8 overflow-hidden">
+            <!-- Header -->
+            <header class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold tracking-tight text-white mb-1">Control Center</h2>
+                    <p class="text-zinc-400">All printer operations in one view.</p>
+                </div>
                 
-                div.innerHTML = `
-                    <div class="flex items-center gap-1.5 mb-2">
-                        <div class="w-5 h-5 bg-black text-white rounded-full flex items-center justify-center text-[8px] font-bold">W</div>
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Assistant</span>
+                <div class="flex gap-3">
+                    <div class="flex items-center gap-4 bg-zinc-900 border border-zinc-800 px-5 py-2.5 rounded-2xl">
+                        <i data-lucide="thermometer" class="w-5 h-5 text-orange-400"></i>
+                        <div class="flex flex-col">
+                            <span id="badge-nozzle" class="text-lg font-bold text-white leading-tight">--°C</span>
+                            <span class="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Nozzle</span>
+                        </div>
                     </div>
-                    <div class="bg-gray-50 border border-gray-100 p-5 rounded-2xl rounded-tl-sm text-gray-800 text-sm leading-relaxed max-w-[95%] shadow-sm">
-                        ${cleanText}
-                        ${cards ? `<div class="mt-4 pt-4 border-t border-gray-200/50">${cards}</div>` : ''}
+                    <div class="flex items-center gap-4 bg-zinc-900 border border-zinc-800 px-5 py-2.5 rounded-2xl">
+                        <i data-lucide="layers" class="w-5 h-5 text-blue-400"></i>
+                        <div class="flex flex-col">
+                            <span id="badge-bed" class="text-lg font-bold text-white leading-tight">--°C</span>
+                            <span class="text-[10px] text-zinc-500 uppercase font-bold tracking-widest">Heatbed</span>
+                        </div>
                     </div>
-                `;
+                </div>
+            </header>
+
+            <div class="main-grid overflow-hidden">
+                <!-- Left Column: Actions & Maintenance -->
+                <div class="space-y-6 overflow-y-auto custom-scrollbar pr-2">
+                    
+                    <!-- Quick Actions Section -->
+                    <div>
+                        <h3 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Quick Actions</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button onclick="sendCommand('home')" class="control-card flex items-center gap-4 text-left group">
+                                <div class="p-3 rounded-xl bg-zinc-950 border border-zinc-800 group-hover:border-blue-500 transition-colors">
+                                    <i data-lucide="home" class="w-6 h-6 text-blue-400"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="font-semibold text-zinc-100">Auto Home</span>
+                                    <span class="text-xs text-zinc-500">Reset all axes</span>
+                                </div>
+                            </button>
+
+                            <button onclick="toggleLamp()" class="control-card flex items-center gap-4 text-left group">
+                                <div class="p-3 rounded-xl bg-zinc-950 border border-zinc-800 group-hover:border-yellow-500 transition-colors">
+                                    <i data-lucide="lightbulb" id="lamp-icon" class="w-6 h-6 text-zinc-500"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="font-semibold text-zinc-100">Chamber Light</span>
+                                    <span id="lamp-status" class="text-xs text-zinc-500">Off</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Maintenance Section -->
+                    <div>
+                        <h3 class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">Maintenance</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button onclick="sendCommand('gcode_line', '', 'M600')" class="control-card flex items-center gap-4 text-left group">
+                                <div class="p-3 rounded-xl bg-zinc-950 border border-zinc-800 group-hover:border-purple-500 transition-colors">
+                                    <i data-lucide="refresh-cw" class="w-6 h-6 text-purple-400"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="font-semibold text-zinc-100">Filament Change</span>
+                                    <span class="text-xs text-zinc-500">Initiate swap</span>
+                                </div>
+                            </button>
+
+                            <button onclick="sendCommand('calibration', 'vibration_comp')" class="control-card flex items-center gap-4 text-left group">
+                                <div class="p-3 rounded-xl bg-zinc-950 border border-zinc-800 group-hover:border-orange-500 transition-colors">
+                                    <i data-lucide="zap" class="w-6 h-6 text-orange-400"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="font-semibold text-zinc-100">Vibration Comp</span>
+                                    <span class="text-xs text-zinc-500">Calibrate resonance</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Printing Progress Section (Integrated) -->
+                    <div class="bg-zinc-900/20 border border-zinc-800/50 p-6 rounded-[2rem] mt-4">
+                        <div class="flex justify-between items-end mb-4">
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Active File</span>
+                                <span id="file-name" class="text-lg font-medium text-white truncate max-w-[300px]">Idle</span>
+                            </div>
+                            <span id="print-percent" class="text-3xl font-black text-white">0%</span>
+                        </div>
+                        <div class="h-2.5 w-full bg-zinc-800 rounded-full overflow-hidden mb-6">
+                            <div id="progress-bar" class="h-full bg-white transition-all duration-700 progress-glow" style="width: 0%"></div>
+                        </div>
+                        <div class="flex gap-3 justify-center">
+                            <button onclick="sendCommand('pause')" class="flex-1 py-3 rounded-xl border border-zinc-800 hover:bg-zinc-800 transition-colors text-amber-500 flex justify-center items-center gap-2 font-bold text-sm">
+                                <i data-lucide="pause" class="w-4 h-4"></i> Pause
+                            </button>
+                            <button onclick="sendCommand('resume')" class="flex-1 py-3 rounded-xl border border-zinc-800 hover:bg-zinc-800 transition-colors text-green-500 flex justify-center items-center gap-2 font-bold text-sm">
+                                <i data-lucide="play" class="w-4 h-4"></i> Resume
+                            </button>
+                            <button onclick="sendCommand('stop')" class="flex-1 py-3 rounded-xl border border-red-500/10 hover:bg-red-500/20 transition-colors text-red-500 flex justify-center items-center gap-2 font-bold text-sm">
+                                <i data-lucide="square" class="w-4 h-4"></i> Stop
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Jog Controls -->
+                <div class="bg-zinc-900/60 border border-zinc-800 rounded-[2.5rem] p-8 flex flex-col items-center justify-between">
+                    <span class="text-xs font-bold text-zinc-500 uppercase tracking-widest">Manual Motion</span>
+                    
+                    <!-- D-Pad Style Controls -->
+                    <div class="relative w-64 h-64 mt-4">
+                        <!-- Y Up -->
+                        <button onclick="move('Y', 10)" class="jog-btn absolute top-0 left-1/2 -translate-x-1/2 w-16 h-16">
+                            <i data-lucide="chevron-up" class="w-8 h-8"></i>
+                        </button>
+                        <!-- Y Down -->
+                        <button onclick="move('Y', -10)" class="jog-btn absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-16">
+                            <i data-lucide="chevron-down" class="w-8 h-8"></i>
+                        </button>
+                        <!-- X Left -->
+                        <button onclick="move('X', -10)" class="jog-btn absolute left-0 top-1/2 -translate-y-1/2 w-16 h-16">
+                            <i data-lucide="chevron-left" class="w-8 h-8"></i>
+                        </button>
+                        <!-- X Right -->
+                        <button onclick="move('X', 10)" class="jog-btn absolute right-0 top-1/2 -translate-y-1/2 w-16 h-16">
+                            <i data-lucide="chevron-right" class="w-8 h-8"></i>
+                        </button>
+                        <!-- Center Home -->
+                        <button onclick="sendCommand('home')" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-white text-black rounded-3xl flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all">
+                            <i data-lucide="home" class="w-8 h-8"></i>
+                        </button>
+                    </div>
+
+                    <!-- Z Axis -->
+                    <div class="flex gap-4 w-full mt-8">
+                        <button onclick="move('Z', 10)" class="flex-1 jog-btn py-4 flex flex-col items-center gap-1">
+                            <i data-lucide="arrow-up" class="w-6 h-6"></i>
+                            <span class="text-[10px] font-bold">Z UP</span>
+                        </button>
+                        <button onclick="move('Z', -10)" class="flex-1 jog-btn py-4 flex flex-col items-center gap-1">
+                            <i data-lucide="arrow-down" class="w-6 h-6"></i>
+                            <span class="text-[10px] font-bold">Z DOWN</span>
+                        </button>
+                    </div>
+
+                    <!-- Step Selection -->
+                    <div class="flex gap-2 w-full mt-6">
+                        <button class="flex-1 py-2 text-[10px] font-bold rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400">1mm</button>
+                        <button class="flex-1 py-2 text-[10px] font-bold rounded-lg bg-white text-black">10mm</button>
+                        <button class="flex-1 py-2 text-[10px] font-bold rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400">50mm</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+   <script>
+    const API_KEYS_URL = "https://groq-api-keys.pages.dev/apikeys.txt";
+    const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
+    const WOOT_FEED_URL = 'https://www.woot.com/offers/feed';
+    
+    const chatForm = document.getElementById('chat-form');
+    const userInput = document.getElementById('user-input');
+    const chatContainer = document.getElementById('chat-container');
+    const welcomeScreen = document.getElementById('welcome-screen');
+    const loadingState = document.getElementById('loading-state');
+    const loadingText = document.getElementById('loading-text');
+    const mainContent = document.getElementById('main-content');
+    const modelSelect = document.getElementById('modelSelect');
+    const statusDot = document.getElementById('status-dot');
+
+    let messageHistory = [];
+    let currentDeals = [];
+    let groqKeys = [];
+    let groqKeyIndex = 0;
+
+    window.quickAsk = function(val) {
+        userInput.value = val;
+        chatForm.dispatchEvent(new Event('submit'));
+    };
+
+    async function initKeys() {
+        try {
+            const res = await fetch(API_KEYS_URL);
+            const text = await res.text();
+            groqKeys = text.split('\n').map(k => k.trim()).filter(k => k.length > 10);
+            groqKeyIndex = Math.floor(Math.random() * groqKeys.length);
+        } catch (e) { console.error("Key init failed", e); }
+    }
+
+    async function fetchWootData() {
+        try {
+            // Using AllOrigins to bypass CORS on the standard RSS feed
+            const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(WOOT_FEED_URL)}`);
+            if (!response.ok) throw new Error("CORS Proxy Failure");
+            
+            const wrapper = await response.json();
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(wrapper.contents, "text/xml");
+            const items = xmlDoc.querySelectorAll("item");
+            
+            if (!items || items.length === 0) throw new Error("No items found");
+
+            currentDeals = Array.from(items).slice(0, 20).map(item => {
+                const title = item.querySelector("title")?.textContent || "Untitled Deal";
+                const link = item.querySelector("link")?.textContent || "#";
+                const descriptionHtml = item.querySelector("description")?.textContent || "";
+                
+                // Regex to grab the product image from Woot's HTML description
+                const imgMatch = descriptionHtml.match(/src="([^"]+)"/);
+                const img = imgMatch ? imgMatch[1] : 'https://www.woot.com/favicon.ico';
+                
+                // Clean HTML tags for the AI context
+                const cleanDesc = descriptionHtml.replace(/<[^>]*>?/gm, '').substring(0, 150);
+
+                return {
+                    Title: title,
+                    Url: link,
+                    Image: img,
+                    Description: cleanDesc
+                };
+            });
+
+            statusDot.className = "w-1.5 h-1.5 rounded-full bg-green-500";
+            return JSON.stringify(currentDeals);
+        } catch (e) {
+            console.error("Woot Fetch Error:", e);
+            statusDot.className = "w-1.5 h-1.5 rounded-full bg-red-500";
+            return "No live data available. Tell the user to try again in a moment.";
+        }
+    }
+
+    async function callAI(messages) {
+        if (groqKeys.length === 0) await initKeys();
+        const key = groqKeys[groqKeyIndex % groqKeys.length];
+        
+        const res = await fetch(GROQ_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: modelSelect.value,
+                messages: messages,
+                temperature: 0.6,
+                max_tokens: 1024
+            })
+        });
+        
+        const data = await res.json();
+        if (data.error) {
+            groqKeyIndex++;
+            throw new Error(data.error.message);
+        }
+        return data.choices[0].message.content;
+    }
+
+    async function handleSubmit(e) {
+        e.preventDefault();
+        const query = userInput.value.trim();
+        if (!query) return;
+
+        welcomeScreen.classList.add('hidden');
+        chatContainer.classList.remove('hidden');
+        loadingState.classList.remove('hidden');
+        userInput.value = '';
+
+        appendMessage('user', query);
+
+        try {
+            loadingText.innerText = "Scanning Woot feeds...";
+            const context = await fetchWootData();
+
+            loadingText.innerText = "Analyzing deals with AI...";
+            const reply = await callAI([
+                { 
+                    role: 'system', 
+                    content: `You are WootAI. Use this Woot data: ${context}. 
+                    1. Mention specific deals. 
+                    2. For EVERY deal you mention, you MUST include [ITEM: Full Title] exactly as it appears in the data.
+                    3. Be funny, brief, and deal-focused.` 
+                },
+                ...messageHistory,
+                { role: 'user', content: query }
+            ]);
+
+            appendMessage('assistant', reply);
+            messageHistory.push({ role: 'user', content: query }, { role: 'assistant', content: reply });
+        } catch (err) {
+            appendMessage('assistant', "I hit a snag fetching the deals. The Woot servers might be tight-fisted right now. Try again?");
+        } finally {
+            loadingState.classList.add('hidden');
+        }
+    }
+
+    function appendMessage(role, text) {
+        const div = document.createElement('div');
+        div.className = `message-anim flex ${role === 'user' ? 'justify-end' : 'justify-start flex-col'}`;
+        
+        if (role === 'user') {
+            div.innerHTML = `<div class="bg-black text-white px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] text-sm font-medium shadow-sm">${text}</div>`;
+        } else {
+            let cards = '';
+            const itemRegex = /\[ITEM:\s*(.*?)\]/g;
+            let match;
+            const seen = new Set();
+
+            while ((match = itemRegex.exec(text)) !== null) {
+                const itemName = match[1].toLowerCase().trim();
+                const deal = currentDeals.find(d => d.Title.toLowerCase().includes(itemName));
+                
+                if (deal && !seen.has(deal.Url)) {
+                    seen.add(deal.Url);
+                    cards += `
+                        <button onclick="window.open('${deal.Url}', '_blank')" class="product-card flex items-center gap-4 w-full p-3 border border-gray-100 rounded-2xl bg-white mb-3 text-left">
+                            <img src="${deal.Image}" class="w-12 h-12 object-contain rounded-lg bg-gray-50" onerror="this.src='https://www.woot.com/favicon.ico'">
+                            <div class="flex-1 overflow-hidden">
+                                <div class="text-[10px] font-bold text-orange-500 uppercase tracking-tighter">Live Deal</div>
+                                <div class="text-sm font-bold text-gray-900 truncate">${deal.Title}</div>
+                            </div>
+                            <i class="fas fa-external-link-alt text-gray-300 text-xs pr-2"></i>
+                        </button>`;
+                }
             }
 
-            chatContainer.appendChild(div);
-            mainContent.scrollTo({ top: mainContent.scrollHeight, behavior: 'smooth' });
+            const cleanText = text.replace(/\[ITEM:.*?\]/g, '').trim()
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            div.innerHTML = `
+                <div class="flex items-center gap-1.5 mb-2">
+                    <div class="w-5 h-5 bg-black text-white rounded-full flex items-center justify-center text-[8px] font-bold">W</div>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Assistant</span>
+                </div>
+                <div class="bg-gray-50 border border-gray-100 p-5 rounded-2xl rounded-tl-sm text-gray-800 text-sm leading-relaxed max-w-[95%] shadow-sm">
+                    ${cleanText}
+                    ${cards ? `<div class="mt-4 pt-4 border-t border-gray-200/50">${cards}</div>` : ''}
+                </div>`;
         }
 
-        chatForm.addEventListener('submit', handleSubmit);
-        initKeys();
-    </script>
+        chatContainer.appendChild(div);
+        mainContent.scrollTo({ top: mainContent.scrollHeight, behavior: 'smooth' });
+    }
+
+    chatForm.addEventListener('submit', handleSubmit);
+    initKeys();
+</script>
 </body>
 </html>
